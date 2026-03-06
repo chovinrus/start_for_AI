@@ -85,13 +85,14 @@ your_project/
 
 #### 命名空间
 
-<img src="assets/image-20260125165317822.png" alt="image-20260125165317822" style="zoom:67%;" /> 
+当py解释器访问变量时按`命名空间`顺序**局部命名空间->嵌套命名空间->全局命名空间->内置命名空间**依次查找 (**LEGB 规则**)，当这四个命名空间都未查找到时抛出NameError
 
-![image-20260125165422856](assets/image-20260125165422856.png) 
-
-globals()、locals()
-
-[02.介绍globals和locals_哔哩哔哩_bilibili](https://www.bilibili.com/video/BV1jE411E7zQ?spm_id_from=333.788.videopod.episodes&vd_source=eae2f511976ee44b67dde481a31be83b&p=2)
+| 命名空间类型      | 创建时机            | 销毁时机               | 说明与访问方式                                               |
+| :---------------- | :------------------ | :--------------------- | :----------------------------------------------------------- |
+| 内置（Built-in）  | Python 解释器启动时 | 解释器退出             | 包含所有内置函数（如 `print`）和异常。 `dir(__builtins__)` 查看。 |
+| 全局（Global）    | 模块被导入或执行时  | 解释器退出或模块被删除 | 模块顶层定义的变量、函数、类。 `globals()` 返回字典。        |
+| 嵌套（Enclosing） | 外层函数被调用时    | 外层函数返回           | 存在于嵌套函数中，外层函数的局部命名空间。 内层函数可通过 `nonlocal` 修改。 |
+| 局部（Local）     | 函数/方法被调用时   | 函数返回（除非闭包）   | 函数内部定义的参数和变量。 `locals()` 在函数内返回字典。     |
 
 自动扫描机制
 
@@ -103,6 +104,33 @@ a = 1
 def test_local():
     print(a) # 运行此行时直接在局部命名空间查找，不会向上查找
     a = 2 # 编译时认为a是一个局部命名空间变量
+```
+
+`globals()`、`locals()`是 Python 内置的两个函数，它们分别用于获取当前作用域下的全局命名空间和局部命名空间的字典视图，值得注意的是，`locals()` 在函数内部返回的是局部命名空间的**一次拷贝**（快照），而`globals()` 返回的是对当前模块全局命名空间的**直接引用**（而不是拷贝）
+
+```py 
+# 示例：globals() 的基本使用
+x = 10
+def foo():
+    y = 20
+    print(globals()['x'])  # 访问全局变量 x，输出 10
+    globals()['z'] = 30    # 动态创建全局变量 z
+
+foo()
+print(z)  # 输出 30，说明 z 确实被添加到了全局命名空间
+```
+
+```py
+def func(a, b):
+    c = a + b
+    local_vars = locals()
+    print(local_vars)          # {'a': 1, 'b': 2, 'c': 3}
+    local_vars['d'] = 100       # 尝试添加局部变量 d
+    print(locals())            # 再次调用 locals()，仍然没有 d，且修改无效
+    c = 999
+    print(local_vars['c'])      # 输出 3，而不是 999，因为 local_vars 是之前的拷贝
+
+func(1, 2)
 ```
 
 global关键字
