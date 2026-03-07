@@ -94,17 +94,23 @@ your_project/
 | 嵌套（Enclosing） | 外层函数被调用时    | 外层函数返回           | 存在于嵌套函数中，外层函数的局部命名空间。 内层函数可通过 `nonlocal` 修改。 |
 | 局部（Local）     | 函数/方法被调用时   | 函数返回（除非闭包）   | 函数内部定义的参数和变量。 `locals()` 在函数内返回字典。     |
 
-自动扫描机制
+**自动扫描机制**（静态作用域分析、变量收集）
 
-代码在编译时会对当前代码块范围的变量进行扫描，并绑定命名空间
+变量作用域的决定方式却是**静态**的，这个过程发生在**编译时**（即代码被编译为字节码的阶段）
 
 ```python
 a = 1
 
 def test_local():
-    print(a) # 运行此行时直接在局部命名空间查找，不会向上查找
+    print(a) # 运行此行时直接在局部命名空间查找，不会向上查找，Unresolved reference 'a' 
     a = 2 # 编译时认为a是一个局部命名空间变量
 ```
+
+> “**编译时作用域分析**”是指 Python 编译器在将源代码（.py文件）转换成字节码（.pyc文件中的对象）的过程中，会扫描每个作用域（主要是函数作用域）的代码，并静态地决定其中每个名字的性质和查找方式
+>
+> “**变量收集**”是编译时作用域分析的直接产出物。编译器会为每个代码块（函数、类、模块）创建一个符号表，并将该作用域内的变量分门别类地“收集”起来，存储到代码对象（`PyCodeObject`）的不同元组中。这些分类直接决定了运行时使用何种字节码指令来访问变量
+
+**globals()、locals()方法**
 
 `globals()`、`locals()`是 Python 内置的两个函数，它们分别用于获取当前作用域下的全局命名空间和局部命名空间的字典视图，值得注意的是，`locals()` 在函数内部返回的是局部命名空间的**一次拷贝**（快照），而`globals()` 返回的是对当前模块全局命名空间的**直接引用**（而不是拷贝）
 
@@ -133,38 +139,124 @@ def func(a, b):
 func(1, 2)
 ```
 
-global关键字
+**global关键字**
 
-全局变量在方法局部进行修改操作时，解释器认为当前在对局部变量进行修改，未对变量定义、初始化，报错unboundederror。要想达到目的应当，必须在前面使用global关键字说明
+`global` 是 Python 中用于在函数内部操作全局变量的关键字。它告诉解释器：在函数内对该名称的赋值操作，应该作用在全局作用域（模块级别）的变量上，而不是创建一个新的局部变量（不添加global关键字时的默认行为）。
+
+注意，global关键字语句必须**放在函数的第一行**！
 
 ```py
-a = 1
-
-def test_local():
-    global a
-    a = 2
+a= 250
+def test1():
+    a = 100
+    print(a) #100
+test1()
+print(a) #250
 ```
 
-闭包closure
+```py
+a= 250
+def test1():
+    global a
+    a = 100
+    print(a) #100
+test1()
+print(a) #100
+```
 
-在一些语言中，在函数中可以（嵌套）定义另一个函数时，如果内部的函数引用了外部的函数的变量，则可能产生闭包。闭包可以用来在一个函数与一组“私有”变量之间创建关联关系。在给定函数被多次调用的过程中，这些私有变量能够保持其持久性。其意义是**提供了一种轻量级的、可维护的“状态封装”方式**
+```py
+a= 250
+def test1():
+    print(a)
+    global a
+test1()
+# global a
+#     ^^^^^^^^
+# SyntaxError: name 'a' is used prior to global declaration
+```
+
+#### 闭包closure
+
+闭包指函数式编程中`函数与其词法环境的结合体`，闭包**允许函数访问并操作外部变量，即使外部函数已执行完毕**
+
+产生闭包的条件
+
+- **函数嵌套**：一个函数内部定义了另一个函数。
+- **内部函数引用外部函数的变量**：内部函数使用了外部函数中声明的变量。
+- **外部函数将内部函数作为返回值返回**：这样内部函数可以在外部函数执行结束后被调用。
+
+当这三个条件满足时，即使外部函数已经返回，内部函数仍然“记住”了它当时所引用的外部变量，这些变量不会被回收内存，因为它们仍然被内部函数引用着。
+
+闭包的意义是**提供了一种轻量级的、可维护的“状态封装”方式**
 
 ``` python
-def outer():
-    a = 1
-    def inner():
-        return a
-    return inner()
+function outerFunction(x) {
+  // 外部函数的变量
+  let outerVariable = 'I am from outer';
 
-if __name__ == '__main__':
-    print(outer()) # 1
+  function innerFunction(y) {
+    // 内部函数引用了外部函数的变量
+    console.log(outerVariable);
+    console.log(x + y);
+  }
+
+  return innerFunction; // 返回内部函数
+}
+
+const myClosure = outerFunction(10); // 执行外部函数，得到内部函数
+myClosure(5); // 调用内部函数，输出：I am from outer 和 15
 ```
 
-如果要查看函数的闭包可以使用\_\_closure__属性访问
+在这里总结下闭包的特点
 
-使用函数的闭包应当注意几个常见的问题
+- 持久性：闭包使得函数可以记住它被创建时的环境，即使环境已经消失。
+- 封装性：可以用来模拟私有变量或方法，实现数据隐藏和模块化。
+- **动态性**：每次外部函数执行都会创建一个新的闭包，它们彼此独立。
 
-闭包变量在inner方法中可以读取不能修改，要想修改必须用nolocal关键字声明为nolocal变量。
+常见的应用场景：轻量级封装数据（**私有化**）、**函数工厂**（根据参数生成特定行为的函数，比如乘法器）、**回调函数中延迟执行**
+
+``` py
+def counter(start=0):
+    count = start
+    def increment():
+        nonlocal count   # 声明 count 不是局部变量，而是来自外层
+        count += 1
+        return count
+    return increment
+
+c = counter(10)
+print(c())  # 11
+print(c())  # 12
+```
+
+```py
+function multiplyBy(n) {
+  return function(x) {
+    return n>0 ? x*n : x+n ;
+  };
+}
+const double = multiplyBy(2);
+console.log(double(5)); // 10
+```
+
+```py
+import threading
+
+def delayed_greeting(name, delay):
+    def callback():
+        print(f"Hello, {name}!")
+    # Timer 会在指定时间后调用 callback
+    timer = threading.Timer(delay, callback)
+    timer.start()
+
+delayed_greeting("Alice", 2)   # 2秒后打印 "Hello, Alice!"
+```
+
+`自由变量`即外层变量会被封装为一个`cell`对象（**闭包单元**），cell被保存在内层函数的**\_\_closure__属性**中（cell的元组），内层函数正是通过调用cell去获取自由变量的值的
+
+**nonlocal关键字**
+
+闭包变量在inner方法中可以读取不能修改，要想修改必须用`nolocal`关键字声明为nolocal变量。
 
 ``` py
 # nolocal关键字
@@ -182,7 +274,9 @@ if __name__ == '__main__':
     print(outer_())  # (2, 2)
 ```
 
-在循环中使用闭包容易掉入“变量捕获”的陷阱
+**延迟绑定在闭包中的问题**
+
+在循环中使用闭包容易掉入“**延迟绑定**”的陷阱：函数在调用的时候才去查找变量的值，此时i的值为2，funcs中每一个show拥有的自由变量i值都为2，本质上来说每个show都在共享同一个i的cell
 
 ```py
 # 一个经典的错误示例
@@ -201,16 +295,21 @@ for i in range(3):
     funcs.append(show)
 ```
 
-函数装饰器
+**函数装饰器**
+
+原理是通过闭包来保持被增强函数的持久性，即增强动作执行时最初的func动作可以在适当的时机被调用
 
 ```py
+# 装饰函数
 def enhance(func):
+    @wraps(func) # 把 func 的元数据复制给 enhance_content,执行help(enhance)时可以看到被装饰函数的信息
     def enhance_content():
         print('pre functioning')
         func()
         print('post functioning')
     return enhance_content
 
+# 被装饰函数
 # 这里的本质是func = enhance(func)
 @enhance
 def func():
@@ -223,7 +322,7 @@ if __name__ == '__main__':
     # post functioning
 ```
 
-如果要给装饰器指向的函数传递参数，必须在该函数写层"三层嵌套"的形式
+如果要给装饰器指向的函数传递参数，必须在该函数写层"**三层嵌套**"的形式
 
 ```py
 def say_hello(msg):
@@ -259,7 +358,7 @@ result2 = sub(20, 10)
 '''
 ```
 
-如果函数有多个装饰器，按照装饰器位置的先后顺序生效
+如果函数有多个装饰器，按照装饰器位置的**先后顺序生效**
 
 ```py
 def decorate1(func):
@@ -280,9 +379,12 @@ def func():
     print('functioning ..')
 
 func()
+# pre-enhance1
+# pre-enhance2
+# functioning ..
 ```
 
-在推导式、生成器表达式当中，解释器会创建新的局部命名空间，表达式当中的变量查找命名空间的顺序和在函数局部命名空间是一样的，因而以下代码的输出预期里a是全局变量a=1
+在推导式、生成器表达式当中，解释器会创建新的**局部命名空间**，表达式当中的变量查找命名空间的顺序和在函数局部命名空间是一样的，推导式的这个作用域地位完全**等同于函数作用域**，因而以下代码的输出预期里a是全局变量a=1，推导式内的作用域和a=1的作用域构成隐式的嵌套函数。
 
 ``` py
 a = 1
@@ -295,11 +397,23 @@ if __name__ == '__main__':
     C()
 ```
 
-导包如果导入完整模块有三种写法，但是建议使用第一种
+```py
+x = [a * i for i in range(5)]
+
+#以上内容相当于
+def _comp():
+    result = []
+    for i in range(5):
+        result.append(a * i)
+    return result
+x = _comp()
+```
+
+**导包**如果导入完整模块有三种写法，但是建议使用第一种
 
 ![image-20260131023543229](assets/image-20260131023543229.png) 
 
-模块的命名空间工作机制：当前文件启动name内置属性为main，被导入则为模块名
+模块的命名空间工作机制：当前文件启动**name内置属性**为main，被导入则为模块名
 
 ```py
 # 模拟 Python 解释器如何设置 __name__
@@ -328,6 +442,11 @@ def python_interpreter_runs_file(filename):
 
 #### 基本语法的差异
 
+is、==的区别
+
+- ==类似于Java的equal，用于比较值是否相同
+- is用于判断是否为同一个对象，比较内存地址是否相同
+
 运算符不支持自增运算符
 
 - 条件表达式可以一定程度替换三目运算符
@@ -348,12 +467,12 @@ def python_interpreter_runs_file(filename):
       case 2: a = 2
   ```
 
-- isinstance、issubclass运算符用于判断是否为另一个类的子类
+- isinstance、issubclass运算符用于判断是否为另一个类的示例、子类
 - 连续使用逻辑运算符可以考虑使用all()、any()函数替代
 
 快速迭代函数range(start, stop[, step])
 
-迭代语句的本质是迭代器，以下是自定义迭代器的实现
+迭代语句的本质是**迭代器**，以下是自定义迭代器的实现
 
 ```py
 class MyIterator:
@@ -383,7 +502,20 @@ for item in my_iter:
     print(item)  # 1, 2, 3
 ```
 
+**可迭代对象和迭代器**
+
+可迭代对象是可以循环遍历的对象，内部实现了\_\_iter\_\_()方法，该方法返回一个迭代器对象，验证对象是否为可迭代对象直接调用\_\_iter\_\_()，检查返回的是否为迭代器即可
+
+迭代器是一个负责逐个返回`可迭代对象的元素`的对象，主要实现了两个方法
+
+- `__iter__()`：返回自身（`self`）。
+- `__next__()`：返回下一个元素；如果没有元素了，抛出 `StopIteration` 异常。
+
+调用\_\_next\_\_()时迭代器返回当前元素，下标前移。因为\_\_iter\_\_()返回值是自身，因此可迭代器也是可迭代对象。
+
 #### 函数
+
+允许多返回值
 
 py的函数允许返回多个返回值，有多个时会自动将他们转为元组
 
@@ -443,7 +575,7 @@ f = lambda a,b:a + b
 print(f(1, 2)) #3
 ```
 
-函数式编程工具支持map、filter、sorted、reduce等，返回一个迭代器，给可迭代对象的每个元素执行目标函数，不支持链式调用
+函数式编程工具支持map、filter、sorted、reduce等，可以返回一个迭代器，用数据容器接收，不支持链式调用
 
 ```py 
 # 函数式编程工具函数
@@ -536,6 +668,15 @@ in运算符用于判断是否为某个容器的元素
 l = tuple()
 l[0] = 1
 print(l) #TypeError: 'tuple' object does not support item assignment
+```
+
+元组和序列都支持**序列解包**
+
+```py
+if __name__ == '__main__':
+    t = (1,2,3)
+    a,b,c = t
+    print(f'{a},{b},{c}') #1,2,3
 ```
 
 字符串
@@ -656,7 +797,7 @@ for i in zipped:
     # (3, 6)
 ```
 
-enumerate() 函数的效果是给可迭代对象按下标组合得到元组
+enumerate() 函数的效果是给可迭代对象**按下标组合**得到元组
 
 ```py
 seasons = ['Spring', 'Summer', 'Fall', 'Winter']
@@ -670,14 +811,16 @@ for i in enumerate(seasons):
 
 #### 面向对象
 
-对象属性在进行声明init方法
+py的构造方法是\_\_new\_\_，\_\_init\_\_方法是在创建对象后自动调用的"魔法方法”，用作实例的初始化，不能被重载
+
+对象属性在进行声明init方法，一般传入self和属性
 
 ```py
 def __init__(self, field):
     self.filed = field
 ```
 
-类方法，可以用来替代构造函数，或者操作类变量
+**类方法**是定义在类中的方法，通过装饰器`@classmethod`来标识。它的第一个参数是`cls`（表示类本身），而不是实例对象。类方法可以访问类的属性，并且可以在没有实例的情况下被调用
 
 ```py
 class Man:
@@ -695,11 +838,13 @@ man = Man.from_date('科比', 2026)
 print(man.getJson())
 ```
 
-注意py的静态方法既没有self入参也没有cls入参，因此没办法访问实例属性也没办法访问类属性，常用于与当前类有关的工具方法
+py的**实例方法**第一个参数指向实例本身，在实例方法中访问实例属性必须通过来self.field来实现
+
+注意py的**静态方法**（用@staticmethod修饰）既没有self入参也没有cls入参，因此没办法访问实例属性也没办法访问类属性，常用于与当前类有关的工具方法
 
 类的继承
 
-子类的init方法形参列表应当大于父类init方法，super()方法可以帮助快速调用父类方法，当然这个父类可以有多个，从给定的MRO顺序选择父类获取目标方法。访问属性时本质上就是查找对象的\_\_dict__属性，调用方法时查找类的mro列表
+子类的init方法形参列表应当大于父类init方法，super()方法可以帮助快速调用父类方法，当然这个父类可以有多个，从给定的**MRO顺序**（方法解析顺序）获取目标方法。访问属性时本质上就是查找对象的**\_\_dict__属性**，调用方法时要先查找类的mro列表。py支持多继承，如果存在多继承MRO由**C3算法**计算，由集成拓扑得到线性列表，不过注意集成自object的类只能有一个。
 
 ```python
 class Animal:
@@ -727,11 +872,23 @@ print(dog.__dict__) #{'branch': 4}
 print(Dog.mro()) #[<class '__main__.Dog'>, <class '__main__.Animal'>, <class 'object'>]
 ```
 
-属性的访问权限
+```py
+class A: pass
+class B(A): pass
+class C(A): pass
+class D(B, C): pass
+
+print(D.__mro__)
+# 输出：(<class '__main__.D'>, <class '__main__.B'>, <class '__main__.C'>, <class '__main__.A'>, <class 'object'>)
+```
+
+**属性的访问权限**
 
 <img src="assets/image-20260129045620460.png" alt="image-20260129045620460" style="zoom:67%;" /> 
 
-对于需要真正控制读写权限或计算属性的情况，Python的答案是 **`@property` 装饰器**。它允许你将方法“伪装”成属性，从而实现 **getter、setter、deleter** 逻辑。
+**Property**装饰器
+
+对于需要真正控制读写权限或计算属性的情况，Python的答案是 `@property` 装饰器。它允许你将方法“伪装”成属性，从而实现 **getter、setter、deleter** 逻辑。
 
 ```py
 class BankAccount:
