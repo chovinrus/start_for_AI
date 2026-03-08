@@ -886,42 +886,40 @@ print(D.__mro__)
 
 <img src="assets/image-20260129045620460.png" alt="image-20260129045620460" style="zoom:67%;" /> 
 
-**Property**装饰器
+**属性的封装**
 
-对于需要真正控制读写权限或计算属性的情况，Python的答案是 `@property` 装饰器。它允许你将方法“伪装”成属性，从而实现 **getter、setter、deleter** 逻辑。
+py的对象封装策略也是将属性私有化，并提供必要的getter、setter，具体实现依赖给和属性同名的方法添加装饰器来实现
+
+- @Property使得属性允许访问
+- @methodname.setter使得属性允许修改
+- @methodname.deleter可以修改del filed的执行逻辑
+
+以上装饰器在使用时本质上是在执行被装饰的方法
 
 ```py
-class BankAccount:
-    def __init__(self, initial_balance):
-        self._balance = initial_balance  # 保护属性，存储真实数据
+class Rect:
+    def __init__(self, area):
+        self.__area = area
 
     @property
-    def balance(self):
-        """balance属性的getter，像访问属性一样读取：account.balance"""
-        print("正在查询余额")
-        return self._balance
+    def area(self):
+        return self.__area
 
-    @balance.setter
-    def balance(self, value):
-        """balance属性的setter，像赋值一样设置：account.balance = 100"""
-        if value < 0:
-            raise ValueError("余额不能为负")
-        print(f"余额修改: {self._balance} -> {value}")
-        self._balance = value
+    @area.setter
+    def area(self, value):
+        self.__area = value
 
-    @balance.deleter
-    def balance(self):
-        """balance属性的deleter，控制删除操作"""
-        print("禁止删除余额属性！")
-        # 可以选择不真正删除，或者抛异常
+    @area.deleter
+    def area(self):
+        self.__area = 0
 
-# 使用
-account = BankAccount(100)
-print(account.balance)     # 触发getter，输出：正在查询余额 \n 100
-account.balance = 200      # 触发setter，输出：余额修改: 100 -> 200
-# account.balance = -50    # 触发setter，抛出 ValueError: 余额不能为负
-del account.balance      # 触发deleter，输出：禁止删除余额属性！
-print(account.balance)  #正在查询余额 \n 200
+
+rect = Rect(30)
+print(rect.area)  # 30
+rect.area = 10
+print(rect.area)  # 10
+del rect.area
+print(rect.area)  # 0
 ```
 
 魔法函数
@@ -945,39 +943,53 @@ print(len(c))
 # 5
 ```
 
-多态重点关注继承过程中不同类的对象使用同名方法的差异
+**py多态**
 
-duck-typing -- 鸭子类型
-指一种编程风格，它并不依靠查找对象类型来确定其是否具有正确的接口，而是直接调用或使用其方法或属性（“看起来像鸭子，?起来也像鸭子，那么肯定就是鸭子。”）由于强调接口而非特定类型，设计良好的代码可通过允许多态替代来提升灵活性。鸭子类型避免使用  type() 或  isinstance() 检测。(但要注意鸭子类型可以使用 抽象基类 作为补充。) 而往往会采用  hasattr() 检测或是 EAFP编程。
+py基于"鸭子类型"的设计理念，拒绝了Java的严格的实现接口的多态实现方式，而是选择关注行为本身，只要对象提供相应的方法，就可以调用。（可以用hasattr(obj, attr_name_str)来验证对象有无指定方法）
 
 ```py
-# 多态
-class Animal:
-    def move(self):
-        pass
+class Duck:
+    def quack(self):
+        print("嘎嘎")
 
-class Dog(Animal):
-    def move(self):
-        print('run')
+class Person:
+    def quack(self):
+        print("模仿嘎嘎")
 
-class Bird(Animal):
-    def move(self):
-        print('fly')
+def make_it_quack(animal):
+    animal.quack()  # 不关心类型，只关心有没有 quack 方法
 
-# # 标准多态
-# def move(animal:Animal):
-#     animal.move()
-# 鸭子类型多态
-def move(animal:Animal):
-    animal.move()
-
-dog=Dog()
-bird=Bird()
-move(dog) #run
-move(bird) #fly
+make_it_quack(Duck())    # 正常运行
+make_it_quack(Person())  # 也正常运行
 ```
 
-py的抽象类中允许已实现的方法存在，通过继承ABC类说明当前类是抽象类，借助@abstractmethod来说明方法时抽象方法。抽象方法必须在子类中得到实现
+现在总结下多态的多态实现方式
+
+- 继承+方法重写（本质上仍然是鸭子类型，不过有了类型判断）
+
+- 鸭子类型
+
+- 运算符重载
+
+  ```py
+  class Vector:
+      def __init__(self, x, y):
+          self.x = x
+          self.y = y
+      def __add__(self, other):
+          return Vector(self.x + other.x, self.y + other.y)
+  
+  v1 = Vector(1, 2)
+  v2 = Vector(3, 4)
+  v3 = v1 + v2      # 多态：+ 被重载为向量加法
+  print(v3.x, v3.y) # 输出 4 6
+  ```
+
+**抽象类**
+
+py的抽象类中允许`具体方法`存在，通过继承**ABC类或将元类设置为ABCMeta类**说明当前类是抽象类，借助@abstractmethod来说明方法是`抽象方法`。抽象方法必须在非抽象子类中进行实现，否则无法实例化。
+
+py的抽象方法、具体方法都可以有方法体和具体实现，区分点只有是否被装饰器@abstractmethod修饰，以及方法实现内容的抽象/具体程度
 
 ```py
 class AbstractBase(ABC):
@@ -991,7 +1003,7 @@ class ConcretSub(AbstractBase):
 ConcretSub().method()
 ```
 
-拷贝机制
+**拷贝机制**
 
  copy.copy()提供浅拷贝
 
@@ -1003,11 +1015,75 @@ ConcretSub().method()
 
 函数的传参本质上是值传递，在函数创建对象的副本，如果是不可变对象，本质上是拷贝了其引用，指向的对象空间仍然不变
 
-类装饰器
+#### **类装饰器**
 
-允许用一个类来装饰另一个函数或类。
+装饰器本质上是一个函数或类，它接受一个函数或类作为输入，并返回一个新的函数或类。装饰器的主要作用是在不修改原函数或类的代码的前提下，为其添加额外的功能，比如日志记录、性能测试、权限验证等。
 
-装饰函数时，本质上是让函数称为类的函数，当实例被执行时（实例后面跟着()，\_\_call\_\_方法的本质就是让实例像函数一样被调用，创建实例后执行增强的功能），就会触发\_\_call__方法执行，相比于用嵌套函数装饰函数，增强函数的工时还有类的状态的保持
+类装饰器本质上是一个可调用对象（通常是**函数**或实现了 `__call__` 方法的类），它接收一个类作为参数，并返回一个**修改后的类**（可以是原类，也可以是修改属性、方法后全新的类）。装饰器的执行时机是在类定义完成之后立即执行，等价于：
+
+```py
+class MyClass:
+    pass
+
+MyClass = decorator(MyClass)
+```
+
+具体的使用有以下几类：
+
+- 函数形式装饰
+
+  ```py
+  def add_method(cls):
+      def new_method(self):
+          print('new_method functioning ..')
+      cls.new_method = new_method
+      cls.new_field = 'new_field_value'
+      return cls
+  
+  @add_method #等价于cls = add_method(cls)
+  class cls:
+      pass
+  
+  cls().new_method() #new_method functioning ..
+  print(cls().new_field) #new_field_value
+  ```
+
+- 带参数的函数形式类装饰器
+
+  ```py
+  new_fields = ['f1', 'f2']
+  new_field_values = ['v1', 'v2']
+  functions = [lambda self, a, b: a + b, lambda self, a, b: a - b]
+  
+  # 外层函数相当于装饰器工厂，decorate才是实际执行装饰的函数
+  def add_method(new_fields, new_field_values, functions):
+      def decorate(cls):
+          for i in range(0, len(new_fields)):
+              setattr(cls, new_fields[i], new_field_values[i])
+          for i in range(0, len(functions)):
+              setattr(cls, functions[i].__name__ + '_' + str(i), functions[i])
+          return cls
+  
+      return decorate
+  
+  @add_method(new_fields, new_field_values, functions)  # 等价于cls = add_method('new_field','new_field_value')
+  class cls:
+      pass
+  
+  obj = cls()
+  for field in new_fields:
+      print(f"{field}: {getattr(obj, field)}")
+      # f1: v1
+      # f2: v2
+  for i in range(0, len(functions)):
+      print(getattr(obj, functions[i].__name__ + '_' + str(i))(1, 1))
+      # 2
+      # 0
+  ```
+
+- 
+
+类作为装饰器去装饰函数时，本质上是让函数成为类的函数，当实例被执行时（实例后面跟着()，\_\_call\_\_方法的本质就是让实例像函数一样被调用，创建实例后执行增强的功能），就会触发\_\_call__方法执行，相比于用嵌套函数装饰函数，增强函数的工时还有类的状态的保持
 
 ```python
 class C:
@@ -1063,9 +1139,9 @@ print(obj.original_method())  # 输出：原始方法，值：10
 print(obj.extra_method())  # 输出：这是添加的方法，类名：MyClass
 ```
 
-\_\_str\_\_和_\_repr__
+**\_\_str\_\_和_\_repr__**
 
-在 Python 中，`__str__` 和 `__repr__` 是两个用于定义对象字符串表示的特殊方法（魔法方法）。它们的主要区别在于目标受众和使用场景。
+在 Python 中，`__str__` 和 `__repr__` 是两个用于定义对象字符串表示的魔法方）。它们的主要区别在于目标受众和使用场景，`__str__` 面向用户用于显示字面量，\_\_repr\_\_用于开发、调试查看str对象真实值，比如repr('\n')打印结果就是'\n'，连引号都带完整的。
 
 ```py
 class Person:
