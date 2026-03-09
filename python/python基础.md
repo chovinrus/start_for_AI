@@ -177,7 +177,7 @@ test1()
 
 #### 闭包closure
 
-闭包指函数式编程中`函数与其词法环境的结合体`，闭包**允许函数访问并操作外部变量，即使外部函数已执行完毕**
+闭包指函数式编程中`函数与其词法环境的结合体`，闭包**允许函数访问并操作外部变量，即使外部函数已执行完毕**。从外层函数来看，本质上是**为函数状态的维持提供了封装支持**，且每次执行时的状态都可以拥有初始值。
 
 产生闭包的条件
 
@@ -515,6 +515,18 @@ for item in my_iter:
 
 #### 函数
 
+函数在python中是名副其实的"一等公民"，可以像给类设置属性一样类似地给函数设置属性
+
+```py
+def my_func():
+    my_func.counter = getattr(my_func, 'counter', 0) + 1
+    print(f"函数已被调用 {my_func.counter} 次")
+
+my_func()
+my_func()
+print(my_func.counter)  # 输出 2
+```
+
 允许多返回值
 
 py的函数允许返回多个返回值，有多个时会自动将他们转为元组
@@ -750,7 +762,7 @@ s2 = {30, 40, 50, 60, 70}
 print(s1.union(s2)) #{70, 40, 10, 50, 20, 60, 30}
 ```
 
-字典dict的新增或修改直接使用d[key] = value即可完成，删除用del关键字，查询用get方法或d[key]，如要批量修改，可以使用update方法
+字典dict的新增或修改直接使用d[key] = value即可完成，删除用del关键字，查询用get方法（第二个参数是未查找到时给出的默认值）或d[key]，如要批量修改，可以使用update方法
 
 ```py
 d1.update({'李四': 40, '王五': 67})
@@ -807,6 +819,94 @@ for i in enumerate(seasons):
 # (1, 'Summer')
 # (2, 'Fall')
 # (3, 'Winter')
+```
+
+至此，来总结下py支持的基础数据类型
+
+- 数字类型：整数、浮点数、复数
+- 序列类型：str、list、tuple、range
+- 集合类型：set、frozenset
+- 映射类型：dict
+- 布尔类型：boolean
+- 二进制类型：bytes、bytesarray
+- None类型
+- 其他内置类型
+
+此外剩下的module、class、object、type、method、function等等都是对象，str也是特殊的对象
+
+**打包和解包**
+
+在这里补充下py的星号表达式，类似Java的解包
+
+- 将列表、元组等解包为**位置参数**，将字典解包为关键字参数
+
+  ```py
+  nums = [1, 2, 3]
+  print(*nums)       # 相当于 print(1, 2, 3)
+  def show(a, b):
+      print(a, b)
+  d = {'a': 10, 'b': 20}
+  show(**d)          # 输出 10 20
+  ```
+
+- 赋值语句中的星号，字面量解包，字面量解包合并
+
+  ```py
+  a, *b = [1, 2, 3, 4]   # a = 1, b = [2, 3, 4]
+  *c, d = [1, 2, 3, 4]   # c = [1, 2, 3], d = 4
+  e, *f, g = [1, 2, 3, 4] # e = 1, f = [2, 3], g = 4
+  
+  list1 = [1, 2]
+  list2 = [3, 4]
+  merged = [*list1, *list2]      # [1, 2, 3, 4]
+  tup = (*list1, 5)              # (1, 2, 5)
+  s = {*list1, *[2, 3]}          # {1, 2, 3}（集合去重）
+  
+  d1 = {'x': 1, 'y': 2}
+  d2 = {'y': 3, 'z': 4}
+  merged_dict = {**d1, **d2}     # {'x': 1, 'y': 3, 'z': 4}（后面的值会覆盖前面的）
+  
+  list1 = [1, 2]
+  list2 = [3, 4]
+  merged = [*list1, *list2]      # [1, 2, 3, 4]
+  tup = (*list1, 5)              # (1, 2, 5)
+  s = {*list1, *[2, 3]}          # {1, 2, 3}（集合去重）
+  
+  d1 = {'x': 1, 'y': 2}
+  d2 = {'y': 3, 'z': 4}
+  merged_dict = {**d1, **d2}     # {'x': 1, 'y': 3, 'z': 4}（后面的键会覆盖前面的）
+  ```
+
+- 迭代中的星号解包
+
+  ```py
+  data = [(1, 'a', 100), (2, 'b', 200)]
+  for id, *rest in data:
+      print(f"ID: {id}, Others: {rest}")
+  # 输出：
+  # ID: 1, Others: ['a', 100]
+  # ID: 2, Others: ['b', 200]
+  ```
+
+- 在函数定义中，可以使用单独的 `*` 来强制其后面的参数必须以关键字参数形式传递。
+
+  ```py
+  def func(a, b, *, option=True):
+      print(a, b, option)
+  
+  func(1, 2, option=False)   # 正确
+  func(1, 2, False)          # 错误，因为 False 会被当作位置参数，但 option 只能以关键字形式传入
+  ```
+
+与解包（unpacking）相对的操作是打包（packing）。在 Python 中，星号（`*`）和双星号（`**`）既可以用于解包，也可以用于打包，它们是互为逆过程的两个概念
+
+```py
+def func(*args, **kwargs):
+    print(args)   # 打包成元组
+    print(kwargs) # 打包成字典
+func(1, 2, 3, a=4, b=5)
+# 输出: (1, 2, 3)
+#       {'a': 4, 'b': 5}
 ```
 
 #### 面向对象
@@ -1015,7 +1115,19 @@ ConcretSub().method()
 
 函数的传参本质上是值传递，在函数创建对象的副本，如果是不可变对象，本质上是拷贝了其引用，指向的对象空间仍然不变
 
-#### **类装饰器**
+#### str的intern机制
+
+str是不可变对象，每次创建后维护到内存中的**字符串池**中（**interned字典**），内容相同的字符串变量直接引用池中的字符串对象，而非重新分配内存
+
+驻留池 `interned` 是一个全局字典，键和值都是字符串对象（键是 PyUnicodeObject 的哈希值，值是对象本身），确保每个字符串只保留一份。当字符串被 intern 时，其引用计数会增加（因为池持有引用），所以不会在正常引用计数归零时被回收，直到解释器关闭或者字符串析构函数判定应该释放时才释放。
+
+除了str变量，其他如函数名、类名、属性名等，以及长度为1的短字符串、空串，也会在编译时自动intern（驻存），如果希望手动intern，可以调用sys.intern(your_str)显式地完成字符串驻存。运行时动态生成的字符串不会被intern，比如用户控制台输入，如要查看是否被intern可以使用sys.__is_interned()来进行判断。
+
+interned字典是全局可访问的，并一直存在内存中直至解释器退出。
+
+#### 函数装饰器、类装饰器
+
+**这部分内容一定要结合代码实践直接刷面试题，贼吉尔重要贼吉尔难**
 
 装饰器本质上是一个函数或类，它接受一个函数或类作为输入，并返回一个新的函数或类。装饰器的主要作用是在不修改原函数或类的代码的前提下，为其添加额外的功能，比如日志记录、性能测试、权限验证等。
 
@@ -1081,36 +1193,73 @@ MyClass = decorator(MyClass)
       # 0
   ```
 
-- 
+- 类作为装饰器
 
-类作为装饰器去装饰函数时，本质上是让函数成为类的函数，当实例被执行时（实例后面跟着()，\_\_call\_\_方法的本质就是让实例像函数一样被调用，创建实例后执行增强的功能），就会触发\_\_call__方法执行，相比于用嵌套函数装饰函数，增强函数的工时还有类的状态的保持
+  > \_\_**call**\_\_允许将一个类的实例像函数一样被调用，这样的话就可以在不改变被装饰函数的使用方式下用类的形式去增强函数
+  >
+  > ```py
+  > class Counter:
+  >     def __init__(self):
+  >         self.count = 0
+  >     def __call__(self):
+  >         self.count += 1
+  >         print(f"已调用 {self.count} 次")
+  > 
+  > counter = Counter()
+  > counter()  # 输出：已调用 1 次
+  > counter()  # 输出：已调用 2 次
+  > ```
 
-```python
-class C:
-    def __init__(self, func):
-        print('initing ..')
-        self.func = func
+  - 类用作装饰器的应用场景
+    - 维护跨多次函数调用的状态。原本需要借助外部变量（自由变量、全局变量）
+    
+    - 类装饰器可以在返回的可调用对象上附加其他方法，供外部使用。函数装饰器虽然也能返回一个带有属性的函数（通过闭包），但类的方式更清晰。
+    
+    - 当装饰器本身需要接收参数时，类装饰器通常比嵌套两层函数的装饰器更直观。实现方式是在 `__init__` 中接收装饰器参数，在 `__call__` 中接收被装饰函数。
+    
+    - 其他，碰到再补充
+    
+      ```py
+      class cls:
+          def __init__(self, func):
+              self.func = func
+              self.flag = 0 #为func设置可维护的状态
+      
+          def __call__(self, *args, **kwargs):
+              self.flag += 1
+              return self.func(*args, **kwargs)
+      
+      
+      @cls # func = cls(func)
+      def func():
+          print("Hello!")
+      
+      
+      func()
+      func()
+      print(func.flag) #2
+      ```
+    
+      ```py
+      class cls:
+          def __init__(self, func):
+              self.func = func
+          def __call__(self, *args, **kwargs):
+              func()
+          def other_func(self):
+              print('other func is functioning.. ')
+      
+      @cls #等价于func = cls(func)
+      def func():
+          print('functioning ..')
+      
+      func() #一次call调用
+      func.other_func() #支持其他方法
+      ```
+    
+      
 
-    def __call__(self, *args, **kwargs):
-        print('target function is called ..')
-        return self.func(*args, **kwargs)
 
-@C
-def func(*arg):
-    print(f'functioning with msg: {arg}')
-
-# 本质等价于func = C(func)
-# def func():
-#     print('functioning ..')
-# func = C(func)
-
-print(func)
-func('hello world')
-# initing ..
-# <__main__.C object at 0x0000023C0CF253A0>
-# target function is called ..
-# functioning with msg: ('hello world',)
-```
 
 用类装饰类的话还能增强一个类，使得原有类拥有更多的成员
 
