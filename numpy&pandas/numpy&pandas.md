@@ -17,15 +17,29 @@ Jupyter 之所以能在算法和数据开发中占据核心地位，源于它完
 
 [anaconda | 镜像站使用帮助 | 清华大学开源软件镜像站 | Tsinghua Open Source Mirror](https://mirrors.tuna.tsinghua.edu.cn/help/anaconda/)
 
+安装完成后在开始菜单查看，可以看到现在完整版的conda支持以下内容包括jupyter
+
 <img src="assets/image-20260311051137510.png" alt="image-20260311051137510" style="zoom: 50%;" /> 
 
 #### conda常用命令
 
-<img src="assets/image-20260311043331608.png" alt="image-20260311043331608" style="zoom:67%;" />  
+<img src="assets/image-20260311043331608.png" alt="image-20260311043331608" style="zoom: 33%;" />    
 
-![image-20260311043355288](assets/image-20260311043355288.png)
+<img src="assets/image-20260311043355288.png" alt="image-20260311043355288" style="zoom:33%;" /> 
 
-![image-20260311043434984](assets/image-20260311043434984.png)  
+<img src="assets/image-20260311043434984.png" alt="image-20260311043434984" style="zoom:33%;" />   
+
+conda查看包可用版本	
+
+```sh
+conda search 包名
+```
+
+conda更新包时禁止更新当前包的依赖
+
+```sh
+conda install 包名=版本号 --no-update-deps
+```
 
 #### Jupeter常用快捷键和基本使用
 
@@ -50,7 +64,9 @@ Jupyter 之所以能在算法和数据开发中占据核心地位，源于它完
   - ctrl + shift + -，在当前光标位置将cell分为两个cell
   - shift + tab，把光标放在函数调用处的后面或参数位置，可以查看该函数的文档
 
-#### 配置远程jupyter服务、继承pycharm
+#### 配置远程jupyter服务
+
+**jupyter远程服务**
 
 一般把jupyter server放在linux环境上，就jupyerhub而言，linux环境下的不同用户远程登录jupyter会分配不同的运行空间，对应**不同的`kernal`进程**（py进程），这样做有很多好处
 
@@ -60,10 +76,10 @@ Jupyter 之所以能在算法和数据开发中占据核心地位，源于它完
 - 资源控制清晰，给每个进程分配配额的资源
 - 不同kernal网络端口隔离
 
-在linux安装好anaconda后用`jupyter lab`命令启动服务后，默认只运行本地访问，因此运行前有必要做一下准备
+在linux安装好anaconda后用`jupyter lab`命令启动服务后，默认只运行本地访问，因此如要实现使用jupyter远程服务运行前有必要做一下准备
 
 ```bash
-# 生成jpt配置文件，~/.jupyter/jupyter_notebook_config.py
+# 生成jpt配置文件，~/.jupyter/jupyter_server_config.py
 jupyter server --generate-config
 
 # 生成密码
@@ -98,7 +114,7 @@ Type=simple
 User=linuxuser
 WorkingDirectory=/home/linuxuser
 # 关键：通过bash激活conda环境后再启动jupyter
-ExecStart=/bin/bash -c ". anaconda3安装位置/etc/profile.d/conda.sh && conda activate 环境名称 && exec jupyter lab --config=/home/用户名称/.jupyter/jupyter_notebook_config.py"
+ExecStart=/bin/bash -c ". anaconda3安装位置/etc/profile.d/conda.sh && conda activate 环境名称 && exec jupyter lab --config=/home/用户名称/.jupyter/jupyter_server_config.py"
 Restart=always
 RestartSec=10
 
@@ -127,3 +143,79 @@ python -m ipykernel install --user --name="env_name" --display-name="kernal_name
 ```
 
 ![image-20260311045943163](assets/image-20260311045943163.png) 
+
+**pycharm集成jupyter**
+
+pycharm作为功能强大的IDE尤其不可替代性，比如强大的代码提示能力，因此可以考虑让pycharm集成远程jupyter服务，同时具备ide功能和代码运行结果记录、笔记书写的功能
+
+设置Jupyter Server
+
+![image-20260313021759707](assets/image-20260313021759707.png)
+
+**设置conda解释器**
+
+这里需要注意pycharm远程使用conda解释器无法同意conda的协议，需要按照报错的提示在终端执行命令同意协议
+
+此外，conda的启动要用到环境变量，而pycharm这边是没法找到远程的环境变量的，因此需要添加.bashrc_profile文件给远程登录的一方找到环境变量
+[( Linux文件 profile、bashrc、bash_profile区别 - 知乎](https://zhuanlan.zhihu.com/p/405174594)
+
+```bash
+echo "test -f ~/.bashrc && source ~/.bashrc" > ~/.bash_profile
+source  ~/.bash_profile
+```
+
+这样再去添加ssh外部解释器就可以找到conda解释器位置了
+
+![image-20260313022834292](assets/image-20260313022834292.png)
+
+![image-20260313022621465](assets/image-20260313022621465.png)
+
+![image-20260313022740826](assets/image-20260313022740826.png)
+
+### Numpy
+
+#### numpy基础
+
+numpy
+
+NumPy（**Numerical Python**）是Python语言中用于科学计算的核心库。它提供了高性能的多维数组对象以及处理这些数组的工具，是数据分析、机器学习、图像处理等领域不可或缺的基础库。几乎所有更高层的科学计算库（如SciPy、Pandas、Matplotlib、scikit-learn等）都建立在NumPy之上
+
+numpy 的部分功能如下： 
+
+- ndarray，一个具有矢量算术运算和复杂广播能力的快速且节省空间的多维数组。 
+- 用于对整组数据进行快速运算的标准数学函数（无需编写循环）。 
+- 用于读写磁盘数据的工具以及用于操作内存映射文件的工具。  线性代数、随机数生成以及傅里叶变换功能。
+- 用于集成由C、C++、Fortran等语言编写的代码的API。
+
+ndarray
+
+`ndarray`，即N维数组对象，是NumPy库中最核心、最重要的数据结构。你可以把它理解为一个高性能的、同质的多维数组容器，是Python中进行科学计算和数据分析的基石
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

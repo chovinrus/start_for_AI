@@ -101,6 +101,12 @@ sudo systemctl enable servicename
 sudo systemctl is-enabled servicename
 ```
 
+查看指定服务的日志
+
+```sh
+journalctl -u servicename -e #-e可以定位当前到日志末尾
+```
+
 Linux **top** 是一个在 Linux 和其他类Unix系统上常用的实时系统监控工具。它提供了一个动态的、交互式的实时视图，显示系统的整体性能信息以及正在运行的进程的相关信息，具体包括**CPU、内存**使用情况，q按键可以退出，f按键可以勾选更多列
 
 ![image-20260116141750633](assets/image-20260116141750633.png) 
