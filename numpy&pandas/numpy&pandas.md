@@ -64,6 +64,19 @@ conda install 包名=版本号 --no-update-deps
   - ctrl + shift + -，在当前光标位置将cell分为两个cell
   - shift + tab，把光标放在函数调用处的后面或参数位置，可以查看该函数的文档
 
+ipynb文件导出为markdown
+
+```sh
+conda install nbconvert
+conda run python -m nbconvert --to markdown target_file
+```
+
+jupyter 代码提示功能，安装完以下包后重启jupyter服务即可
+
+```py
+conda install jupyterlab-lsp python-lsp-server[all]
+```
+
 #### 配置远程jupyter服务
 
 **jupyter远程服务**
@@ -176,8 +189,6 @@ source  ~/.bash_profile
 
 #### numpy基础
 
-numpy
-
 NumPy（**Numerical Python**）是Python语言中用于科学计算的核心库。它提供了高性能的多维数组对象以及处理这些数组的工具，是数据分析、机器学习、图像处理等领域不可或缺的基础库。几乎所有更高层的科学计算库（如SciPy、Pandas、Matplotlib、scikit-learn等）都建立在NumPy之上
 
 numpy 的部分功能如下： 
@@ -187,31 +198,107 @@ numpy 的部分功能如下：
 - 用于读写磁盘数据的工具以及用于操作内存映射文件的工具。  线性代数、随机数生成以及傅里叶变换功能。
 - 用于集成由C、C++、Fortran等语言编写的代码的API。
 
-ndarray
+#### ndarray
 
 `ndarray`，即N维数组对象，是NumPy库中最核心、最重要的数据结构。你可以把它理解为一个高性能的、同质的多维数组容器，是Python中进行科学计算和数据分析的基石
 
+ndarray和python的list的区别
 
+- 长度固定，不允许append、remove操作
+- 每个维度上的大小一致，即**Rectangular** 
+- 元素的数据类型必须一致
+- 所有操作方法面向数组元素而非数组结构，数组结构一旦确定无法改变
+- 切片行为返回是"视图"而非副本，对视图的操作会影响原数组
+- 面向数据集的数值计算性能高，因为ndarray本质上是元素连续存储，而list是指针连续存储
 
+ndarray支持的元素类型
 
+<img src="assets/image-20260313212609843.png" alt="image-20260313212609843" style="zoom:50%;" />  
 
+#### ndarray操作相关代码练习
 
+见 [ndarray_prac.ipynb](ndarray_prac.ipynb) 
 
+### Pandas
 
+#### pandas概述
 
+Pandas 是 Python 数据分析领域的核心库，由 Wes McKinney 于 2008 年创建，主要用于数据处理和分析。它基于 NumPy 构建，提供了高效、灵活的数据结构，使得处理结构化数据变得简单直观。无论是数据清洗、转换、聚合，还是与可视化、机器学习库的集成，pandas 都扮演着不可或缺的角色。
 
+pandas 引入两种主要数据结构：
 
+- **Series**：一维带标签数组，可以存储任意数据类型（整数、浮点、字符串、Python 对象等）。标签（索引）使得数据访问更灵活。
+- **DataFrame**：二维表格型数据结构，由行和列组成，每一列可以是不同的数据类型。DataFrame 既有行索引也有列索引，类似于 Excel 表或 SQL 表。
 
+这两种结构的设计使得数据操作更加符合直觉，同时也具备良好的性能。
 
+pandas支持的功能
 
+<img src="assets/image-20260314173342345.png" alt="image-20260314173342345" style="zoom:67%;" />  
 
+#### series
 
+series和ndarray的对比
 
+![image-20260314200944538](assets/image-20260314200944538.png)
 
+#### series相关方法代码实践
 
+见 [series_prac.ipynb](series_prac.ipynb) 
 
+### 统计学基础
 
+#### 几个常见的统计术语
 
+平均值mean
+
+众数mode
+
+分位数quantile
+
+正态分布Normal distribution
+
+相关性系数correlation coefficient
+
+置信度confidence coefficient
+
+#### 分位数
+
+分位数用于描述一组数据的分布情况。简单来说，分位数就是将一组有序数据划分为若干个相等部分的数值点。通过分位数，我们可以了解数据的**分散程度、中心位置以及异常值**等情况。
+
+<img src="assets/image-20260315081750286.png" alt="image-20260315081750286" style="zoom:80%;" /> 
+
+常见分位数
+
+- 四分位数（Quartiles）：将数据分为四等份的三个分位数。
+  - 第一四分位数（Q1*Q*1），又称下四分位数，对应 p=0.25*p*=0.25，即25%分位数。
+  - 第二四分位数（Q2*Q*2），即中位数，对应 p=0.5*p*=0.5。
+  - 第三四分位数（Q3*Q*3），又称上四分位数，对应 p=0.75*p*=0.75。
+    四分位数常用于绘制箱线图，展示数据的分布和异常值。
+
+计算分位数的一般方法
+
+<img src="assets/image-20260315081148492.png" alt="image-20260315081148492" style="zoom:67%;" /> 
+
+#### 相关性系数
+
+相关系数是统计学中用于度量两个变量之间线性关系强度和方向的指标。它帮助我们理解一个变量的变化如何与另一个变量的变化相关联，取值范围在 -1 到 1 之间。
+
+- 正相关（系数 > 0）：一个变量增大，另一个也随之增大（如身高与体重）。
+- 负相关（系数 < 0）：一个变量增大，另一个反而减小（如汽车速度与行驶时间）。
+- 零相关（系数 ≈ 0）：两个变量之间没有线性关系（但仍可能存在非线性关系）。
+
+注意：相关系数只衡量线性关系，不反映因果关系。
+
+皮尔逊相关性系数是最常用的系数公式
+
+![image-20260315125024891](assets/image-20260315125024891.png) 
+
+#### 协方差
+
+用于衡量两个随机变量线性相关程度以及变化方向的指标。它反映了当一个变量**偏离其均值时**，另一个变量如何偏离其均值。与相关系数相比，协方差不仅给出相关方向，还保留了变量的量纲，因此其数值大小受变量单位的影响，通常不易直接比较。
+
+<img src="assets/image-20260315175103387.png" alt="image-20260315175103387" style="zoom:67%;" /> 
 
 
 
