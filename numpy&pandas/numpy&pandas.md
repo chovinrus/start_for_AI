@@ -244,13 +244,19 @@ series和ndarray的对比
 
 #### series相关方法代码实践
 
-见 [series_prac.ipynb](series_prac.ipynb) 
+见 [series.ipynb](series.ipynb) 
 
 #### dataframe
 
 DataFrame 是一种广泛应用于数据分析和处理的数据结构，可以理解为一张二维的表格，类似于 Excel 表格或 SQL 数据库中的表。它由行和列组成，每一列可以是不同的数据类型（如数值、字符串、布尔值等），并且支持对数据进行高效的筛选、变换、聚合和可视化操作
 
+见 
 
+数据组合函数、方法
+
+DataFrame之间可以进行连接，merge函数或join方法形式类似于数据库表的连接，concat函数类似于表结构的append操作
+
+见 [数据组合函数.ipynb](数据组合函数.ipynb)
 
 ### 统计学基础
 
